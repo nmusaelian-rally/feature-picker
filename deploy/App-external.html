@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feature Picker</title>
+
+    <script type="text/javascript" src="https://rally1.rallydev.com/apps/2.0/sdk.js"></script>
+
+    <script type="text/javascript">
+        Rally.onReady(function () {
+                Ext.define("CustomApp",{extend:"Rally.app.TimeboxScopedApp",componentCls:"app",scopeType:"release",comboboxConfig:{fieldLabel:"Select a Release:",labelWidth:100,width:300},onScopeChange:function(){this.down("#features")&&this.down("#features").destroy();var features=Ext.create("Rally.ui.combobox.ComboBox",{itemId:"features",storeConfig:{model:"PortfolioItem/Feature",fetch:["FormattedID","Name","Release","UserStories"],pageSize:100,autoLoad:!0,filters:[this.getContext().getTimeboxScope().getQueryFilter()]},fieldLabel:"select Feature",listeners:{ready:function(combobox){combobox.getRecord()?(console.log("ready",combobox.getRecord().get("_ref")),this._onFeatureSelected(combobox.getRecord())):(console.log("selected release has no features"),this.down("#grid")&&this.down("#grid").destroy())},select:function(combobox){combobox.getRecord()&&(console.log("select",combobox.getRecord().get("_ref")),this._onFeatureSelected(combobox.getRecord()))},scope:this}});this.add(features)},_onFeatureSelected:function(feature){console.log("feature",feature.get("Name"));var f={FormattedID:feature.get("FormattedID"),Name:feature.get("Name"),_ref:feature.get("_ref"),UserStories:[]},collection=feature.getCollection("UserStories",{fetch:["Name","FormattedID","Owner","Defects"]}),that=this,count=collection.getCount();console.log(count);var stories=[],pendingStories=count;collection.load({callback:function(records,operation,success){Ext.Array.each(records,function(story){var s={FormattedID:story.get("FormattedID"),Name:story.get("Name"),_ref:story.get("_ref"),DefectCount:story.get("Defects").Count,Defects:[]},defects=story.getCollection("Defects"),defectcount=defects.getCount(),pendingDefects=defectcount;defects.load({fetch:["FormattedID"],callback:function(records,operation,success){Ext.Array.each(records,function(defect){s.Defects.push({_ref:defect.get("_ref"),FormattedID:defect.get("FormattedID")})},this),--pendingDefects,0===pendingDefects&&(console.log(story.get("FormattedID")+" - "+story.get("Name")),--pendingStories,0===pendingStories&&console.log("stories inside callback",stories)),console.log("makeGrid"),that._makeGrid(stories)},scope:this}),stories.push(s)},this)}})},_makeGrid:function(stories){var c=Ext.create("Ext.Container",{layout:{type:"absolute"},x:400});this.add(c),this._store=Ext.create("Rally.data.custom.Store",{data:stories,pageSize:100,remoteSort:!1}),this.down("#grid")?this.down("#grid").reconfigure(this._store):c.add({xtype:"rallygrid",itemId:"grid",store:this._store,columnCfgs:[{text:"Formatted ID",dataIndex:"FormattedID",xtype:"templatecolumn",tpl:Ext.create("Rally.ui.renderer.template.FormattedIDTemplate")},{text:"Name",dataIndex:"Name"},{text:"Defect Count",dataIndex:"DefectCount"},{text:"Defects",dataIndex:"Defects",renderer:function(value){var html=[];return Ext.Array.each(value,function(defect){html.push('<a href="'+Rally.nav.Manager.getDetailUrl(defect)+'">'+defect.FormattedID+"</a>")}),html.join(", ")}}]})}});
+
+            Rally.launchApp('CustomApp', {
+                name:"Feature Picker",
+	            parentRepos:""
+            });
+
+        });
+    </script>
+
+
+    <style type="text/css">
+        
+    </style>
+</head>
+<body>
+</body>
+</html>
